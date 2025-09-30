@@ -2,16 +2,22 @@ import json
 import base64
 import logging
 from google.cloud import aiplatform
+from google.cloud import bigquery
 from flask import Flask, request
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuración de Vertex AI
+# Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
 REGION = "southamerica-west1"
 MODEL_ID = "gemini-1.5-pro"
+BQ_DATASET = "minedash_data"
+BQ_TABLE = "sensor_analysis"
+
+# Cliente BigQuery
+bq_client = bigquery.Client()
 
 @app.route('/', methods=['POST'])
 def analyze_sensor_data():
@@ -41,6 +47,21 @@ def analyze_sensor_data():
         response = model.predict(endpoint=endpoint, instances=[instance])
         prediction = response.predictions[0].get('content', 'No response')
         logger.info(f"Respuesta de Vertex AI: {prediction}")
+
+        # Insertar en BigQuery
+        table_id = f"{PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE}"
+        row = {
+            "sensor_id": sensor_data.get("sensor_id", ""),
+            "type": sensor_data.get("type", ""),
+            "value": float(sensor_data.get("value", 0.0)),
+            "timestamp": sensor_data.get("timestamp", ""),
+            "analysis_result": prediction
+        }
+        errors = bq_client.insert_rows_json(table_id, [row])
+        if errors:
+            logger.error(f"Error al insertar en BigQuery: {errors}")
+        else:
+            logger.info(f"Datos insertados en BigQuery: {row}")
 
         return prediction, 200
     except Exception as e:
