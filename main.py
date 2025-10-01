@@ -19,7 +19,7 @@ BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
 
 # Inicializa Vertex AI
-vertexai.init(project=PROJECT_ID, location=VERTEX_REGION)
+vertexai.init(project=PROJECT_ID, location=global)
 
 # Cliente BigQuery
 bq_client = bigquery.Client()
