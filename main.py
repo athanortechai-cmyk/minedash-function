@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 # Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
-VERTEX_REGION = "us-central1"  # Región para Vertex AI (Gemini disponible)
+REGION = "global"  # Endpoint global para Gemini
 MODEL_ID = "gemini-1.5-flash"
 BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
 
 # Inicializa Vertex AI
-vertexai.init(project=PROJECT_ID, location=global)
+vertexai.init(project=PROJECT_ID, location=REGION)
 
 # Cliente BigQuery
 bq_client = bigquery.Client()
@@ -28,12 +28,18 @@ bq_client = bigquery.Client()
 def analyze_sensor_data():
     try:
         # Extraer datos de Pub/Sub
-        pubsub_message = request.get_json()
+        pubsub_message = request.get_json(silent=True)
+        if not pubsub_message:
+            raise ValueError("No JSON data received")
         if 'message' in pubsub_message:
             data = base64.b64decode(pubsub_message['message']['data']).decode('utf-8')
         else:
             data = pubsub_message.get('data', '{}')
-        sensor_data = json.loads(data)
+        try:
+            sensor_data = json.loads(data)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON data: {data}")
+            raise ValueError(f"Invalid JSON: {str(e)}")
         logger.info(f"Datos recibidos: {sensor_data}")
 
         # Prompt para análisis
@@ -45,7 +51,7 @@ def analyze_sensor_data():
         - Si no hay anomalía: "Temperatura en rango seguro ({{value}}°C) para sensor {{sensor_id}}."
         """
 
-        # Llamada a Vertex AI con Gemini 1.5 Flash
+        # Llamada a Vertex AI
         model = GenerativeModel(MODEL_ID)
         response = model.generate_content(prompt)
         prediction = response.text
