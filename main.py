@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 # Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
-REGION = "southamerica-west1"
+VERTEX_REGION = "us-central1"  # Región para Vertex AI (Gemini disponible)
 MODEL_ID = "gemini-1.5-flash"
 BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
 
 # Inicializa Vertex AI
-vertexai.init(project=PROJECT_ID, location=REGION)
+vertexai.init(project=PROJECT_ID, location=VERTEX_REGION)
 
 # Cliente BigQuery
 bq_client = bigquery.Client()
