@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 # Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
-REGION = "southamerica-west1"
-MODEL_ID = "gemini-1.5-pro"
+REGION = "us-central1"
+MODEL_ID = "gemini-2.5-pro"
 BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
 
