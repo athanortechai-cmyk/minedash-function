@@ -1,9 +1,11 @@
 import json
 import base64
 import logging
-from google.cloud import aiplatform
+import vertexai
+from vertexai.generative_models import GenerativeModel
 from google.cloud import bigquery
 from flask import Flask, request
+from datetime import datetime
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -11,10 +13,13 @@ logger = logging.getLogger(__name__)
 
 # Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
-REGION = "us-central1"
-MODEL_ID = "gemini-2.5-pro"
+REGION = "southamerica-west1"
+MODEL_ID = "gemini-2.5-pro"  # Modelo disponible en southamerica-west1
 BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
+
+# Inicializa Vertex AI
+vertexai.init(project=PROJECT_ID, location=REGION)
 
 # Cliente BigQuery
 bq_client = bigquery.Client()
@@ -40,12 +45,10 @@ def analyze_sensor_data():
         - Si no hay anomalía: "Temperatura en rango seguro ({{value}}°C) para sensor {{sensor_id}}."
         """
 
-        # Llamada a Vertex AI
-        model = aiplatform.gapic.PredictionServiceClient()
-        endpoint = f"projects/{PROJECT_ID}/locations/{REGION}/publishers/google/models/{MODEL_ID}"
-        instance = {"prompt": prompt}
-        response = model.predict(endpoint=endpoint, instances=[instance])
-        prediction = response.predictions[0].get('content', 'No response')
+        # Llamada a Vertex AI con Gemini 2.5 Pro
+        model = GenerativeModel(MODEL_ID)
+        response = model.generate_content(prompt)
+        prediction = response.text
         logger.info(f"Respuesta de Vertex AI: {prediction}")
 
         # Insertar en BigQuery
@@ -54,7 +57,7 @@ def analyze_sensor_data():
             "sensor_id": sensor_data.get("sensor_id", ""),
             "type": sensor_data.get("type", ""),
             "value": float(sensor_data.get("value", 0.0)),
-            "timestamp": sensor_data.get("timestamp", ""),
+            "timestamp": datetime.now().isoformat(),
             "analysis_result": prediction
         }
         errors = bq_client.insert_rows_json(table_id, [row])
