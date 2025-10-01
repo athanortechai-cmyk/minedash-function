@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Configuración de Vertex AI y BigQuery
 PROJECT_ID = "cobalt-entropy-473700-i0"
 REGION = "southamerica-west1"
-MODEL_ID = "gemini-2.5-pro"  # Modelo disponible en southamerica-west1
+MODEL_ID = "gemini-1.5-flash"
 BQ_DATASET = "minedash_data"
 BQ_TABLE = "sensor_analysis"
 
@@ -45,7 +45,7 @@ def analyze_sensor_data():
         - Si no hay anomalía: "Temperatura en rango seguro ({{value}}°C) para sensor {{sensor_id}}."
         """
 
-        # Llamada a Vertex AI con Gemini 2.5 Pro
+        # Llamada a Vertex AI con Gemini 1.5 Flash
         model = GenerativeModel(MODEL_ID)
         response = model.generate_content(prompt)
         prediction = response.text
@@ -57,7 +57,7 @@ def analyze_sensor_data():
             "sensor_id": sensor_data.get("sensor_id", ""),
             "type": sensor_data.get("type", ""),
             "value": float(sensor_data.get("value", 0.0)),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": sensor_data.get("timestamp", datetime.now().isoformat()),
             "analysis_result": prediction
         }
         errors = bq_client.insert_rows_json(table_id, [row])
